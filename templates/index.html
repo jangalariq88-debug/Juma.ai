@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fa">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101426">
+<title>Juma.AI</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0c1020;color:#f5f7ff;font-family:Arial,sans-serif}
+header{padding:20px;text-align:center;background:#141a30;border-bottom:1px solid #29314c}
+.logo{font-size:28px;font-weight:bold;color:#8d9bff}
+header p{color:#aeb7d2;font-size:13px}
+select,textarea,button{font:inherit}
+select{background:#202945;color:white;border:1px solid #394465;border-radius:10px;padding:10px}
+main{max-width:760px;margin:auto;padding:16px}
+#chat{height:58vh;overflow:auto;display:flex;flex-direction:column;gap:12px;padding:8px 0}
+.msg{padding:13px 15px;border-radius:16px;max-width:90%;white-space:pre-wrap;line-height:1.6;overflow-wrap:anywhere}
+.user{align-self:flex-end;background:#5965d9}
+.ai{align-self:flex-start;background:#1b2440;border:1px solid #2d395d}
+form{position:sticky;bottom:0;background:#0c1020;padding:10px 0}
+textarea{width:100%;resize:vertical;min-height:58px;max-height:150px;background:#171e35;color:white;border:1px solid #354263;border-radius:14px;padding:13px}
+button{border:0;border-radius:12px;padding:13px 18px;background:#6975ed;color:white;font-weight:bold;cursor:pointer}
+.actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0}
+#status{font-size:13px;color:#aeb7d2}
+</style>
+</head>
+<body>
+<header>
+<div class="logo">✦ Juma.AI</div>
+<p id="subtitle">دستیار هوشمند آنلاین شما</p>
+<select id="lang" aria-label="Language">
+<option value="fa">فارسی / دری</option>
+<option value="tr">Türkçe</option>
+<option value="en">English</option>
+</select>
+</header>
+<main>
+<div id="chat" aria-live="polite"></div>
+<div class="actions">
+<span id="status">آماده</span>
+<button id="clear" type="button">گفت‌وگوی جدید</button>
+</div>
+<form id="form">
+<textarea id="message" placeholder="پیامت را بنویس..." required></textarea>
+<div class="actions">
+<span id="hint">پاسخ‌ها به زبان انتخاب‌شده</span>
+<button id="send" type="submit">ارسال ↑</button>
+</div>
+</form>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const words={
+fa:{subtitle:"دستیار هوشمند آنلاین شما",placeholder:"پیامت را بنویس...",send:"ارسال ↑",clear:"گفت‌وگوی جدید",ready:"آماده",wait:"در حال دریافت پاسخ...",hint:"پاسخ‌ها به زبان انتخاب‌شده",error:"خطا: ",welcome:"سلام! من Juma.AI هستم. چطور کمک کنم؟"},
+tr:{subtitle:"Çevrimiçi yapay zekâ asistanınız",placeholder:"Mesajınızı yazın...",send:"Gönder ↑",clear:"Yeni sohbet",ready:"Hazır",wait:"Yanıt bekleniyor...",hint:"Yanıtlar seçilen dilde",error:"Hata: ",welcome:"Merhaba! Ben Juma.AI. Size nasıl yardımcı olabilirim?"},
+en:{subtitle:"Your online AI assistant",placeholder:"Write your message...",send:"Send ↑",clear:"New chat",ready:"Ready",wait:"Waiting for response...",hint:"Replies in the selected language",error:"Error: ",welcome:"Hello! I'm Juma.AI. How can I help you?"}
+};
+function setLanguage(){
+ const l=$("lang").value,w=words[l];
+ document.documentElement.lang=l;
+ document.documentElement.dir=l==="fa"?"rtl":"ltr";
+ $("subtitle").textContent=w.subtitle;
+ $("message").placeholder=w.placeholder;
+ $("send").textContent=w.send;
+ $("clear").textContent=w.clear;
+ $("status").textContent=w.ready;
+ $("hint").textContent=w.hint;
+}
+function add(text,who){
+ const el=document.createElement("div");
+ el.className="msg "+who;
+ el.textContent=text;
+ $("chat").appendChild(el);
+ $("chat").scrollTop=$("chat").scrollHeight;
+ return el;
+}
+$("lang").addEventListener("change",setLanguage);
+$("clear").onclick=()=>{
+ $("chat").replaceChildren();
+ add(words[$("lang").value].welcome,"ai");
+};
+$("form").onsubmit=async e=>{
+ e.preventDefault();
+ const text=$("message").value.trim();
+ if(!text)return;
+ const l=$("lang").value,w=words[l];
+ add(text,"user");
+ $("message").value="";
+ $("send").disabled=true;
+ $("status").textContent=w.wait;
+ const bubble=add("…","ai");
+ try{
+   const r=await fetch("/chat",{
+     method:"POST",
+     headers:{"Content-Type":"application/json"},
+     body:JSON.stringify({message:text,lang:l})
+   });
+   const data=await r.json();
+   if(!r.ok||data.error)throw Error(data.error||"Request failed");
+   bubble.textContent=data.answer;
+ }catch(err){
+   bubble.textContent=w.error+err.message;
+ }
+ $("send").disabled=false;
+ $("status").textContent=w.ready;
+};
+setLanguage();
+add(words.fa.welcome,"ai");
+</script>
+</body>
+</html>

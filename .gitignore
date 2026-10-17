@@ -1,0 +1,5 @@
+.env
+*.backup*
+*.before_render
+__pycache__/
+*.pyc
