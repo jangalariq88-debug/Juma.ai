@@ -96,7 +96,16 @@ $("form").onsubmit=async e=>{
      headers:{"Content-Type":"application/json"},
      body:JSON.stringify({message:text,lang:l})
    });
-   const data=await r.json();
+   const raw=await r.text();
+   let data;
+   try {
+     data=JSON.parse(raw);
+   } catch (_) {
+     if (!r.ok) {
+       throw Error("سرور موقتاً پاسخ نداد (HTTP "+r.status+"). لطفاً دوباره تلاش کن.");
+     }
+     throw Error("پاسخ سرور قابل خواندن نیست.");
+   }
    if(!r.ok||data.error)throw Error(data.error||"Request failed");
    bubble.textContent=data.answer;
  }catch(err){
